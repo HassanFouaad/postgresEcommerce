@@ -1,6 +1,8 @@
 const {pool}= require("../dbconfig")
 const jwt = require("jsonwebtoken")
 const bcrypt = require("bcrypt")
+
+
 ///FETCH ALL USERS
 exports.getAllUsers = async (req,res)=>{
 
@@ -50,5 +52,53 @@ exports.singUp = async (req,res)=>{
     } catch (error) {
         console.log(error)
         res.status(400).json(error.message)
+    }
+}
+
+
+
+//Singin 
+
+exports.singIn = async (req,res)=> {
+try {
+    const {email,password}=req.body
+    const userFound = await pool.query("SELECT id, firstname, lastname, password, email, joined_at from users where email = $1",[email])
+    if(userFound.rowCount < 1){
+        return res.status(404).json({error:"Email doesn't exists, Please Sign Up"})
+    }
+    console.log(userFound.rows[0].password)
+    const isMatch =  await bcrypt.compare(password, userFound.rows[0].password)
+    if(!isMatch){
+        return res.status(401).json({error:"Invaild Credentials"})
+    }
+    const payload = {
+        user:userFound.rows[0]
+    }   
+    jwt.sign(payload,process.env.JWT_SECRET,{expiresIn:36000} ,(err,token)=>{
+        if(err){
+            console.log(err)
+            return res.status(400).json(err)
+        }
+        payload.user.password = undefined
+        res.status(200).json({user:payload.user, token})
+    })
+} catch (error) {
+    console.log(error)
+    res.status(500).json({error})
+}
+    
+}
+
+exports.getSingleUser = async (req,res) => {
+    try {
+    const userFound = await pool.query(`SELECT * FROM users WHERE ${Object.keys(req.query)[0]} = $1`,[req.query[Object.keys(req.query)[0]]])
+    if(userFound.rows.length < 1){
+        return res.json({error:"No Users Found!"})
+    }
+    userFound.rows[0].password = undefined
+    res.json(userFound.rows[0])
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({error:"Query type is not valid!"})
     }
 }
