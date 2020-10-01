@@ -18,3 +18,9 @@ CREATE TABLE posts
     created_At TIMESTAMPTZ DEFAULT Now()
 
 );
+
+
+CREATE TABLE followers (
+    userId VARCHAR(255) NOT NULL,
+    followerId VARCHAR(255) NOT NULL
+);
